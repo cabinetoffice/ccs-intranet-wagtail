@@ -1,0 +1,20 @@
+version: 0.2
+
+phases:
+
+  pre_build:
+    commands:
+      - terraform version
+      - terragrunt --version
+      - cd terragrunt
+#      - terragrunt run-all plan --terragrunt-log-level warn
+
+  build:
+    commands:
+      - make core-iam-apply
+#      - make core-networking-apply
+#      - make core-security-groups-apply
+#      - make common-networking-apply
+#      - make service-ci-apply
+#      - make service-database-apply
+#      - make service-ecs-apply
