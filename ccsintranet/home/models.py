@@ -1,5 +1,4 @@
 from django.db import models
-from django.db import models
 from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
 from wagtail.search import index
 
@@ -10,6 +9,7 @@ from ccsintranet.utils.models import BasePage
 
 class HomePage(BasePage):
     template = "pages/home_page.html"
+
     introduction = models.TextField(blank=True)
     hero_cta = StreamField(
         [("link", InternalLinkBlock())],

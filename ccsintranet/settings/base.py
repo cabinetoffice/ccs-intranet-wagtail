@@ -32,7 +32,9 @@ if "CSRF_TRUSTED_ORIGINS" in os.environ:
 # Application definition
 
 INSTALLED_APPS = [
+    "ccsintranet.events",
     "ccsintranet.forms",
+    "ccsintranet.guides",
     "ccsintranet.home",
     "ccsintranet.images",
     "ccsintranet.navigation",
