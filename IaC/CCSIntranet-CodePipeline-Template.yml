@@ -1,0 +1,196 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation Template to create an AWS CodePipeline for deploying the Wagtail application to ECS using GitHub connector.
+
+Parameters:
+  GitHubRepositoryOwner:
+    Description: The owner of the GitHub repository (e.g., user)
+    Type: String
+
+  GitHubRepositoryName:
+    Description: The name of the GitHub repository (e.g., repo)
+    Type: String
+
+  GitHubBranch:
+    Description: The branch of the GitHub repository to use
+    Type: String
+    Default: main
+
+  GitHubConnectionArn:
+    Description: The ARN of the AWS CodePipeline GitHub connection
+    Type: String
+
+  ContainerName:
+    Description: The name of the container in the ECS task definition (dev/test etc)
+    Type: String
+    Default: wagtail
+
+  ECSServiceName:
+    Description: The ECS service name where the application will be deployed (dev/test etc)
+    Type: String
+    Default: WagtailService
+
+  ECSClusterName:
+    Description: The ECS cluster where the service is located (dev/test etc)
+    Type: String
+    Default: WagtailCluster
+
+  ECSTaskDefinition:
+    Description: The ECS Task Definition where the service is located (dev/test etc)
+    Type: String
+    Default: WagtailTaskDefinition
+  
+  ECRRepositoryName:
+    Description: The ECR Repository name
+    Type: String
+    Default: ECRRepositoryName
+
+  ImageTag:
+    Description: The image tag to be used for deployment
+    Type: String
+    Default: latest
+
+  ArtifactBucketName:
+    Description: The name of the S3 bucket to be used for pipeline artifacts.  Must exist in the same region as the pipeline.
+    Type: String
+
+  ECSExecutionRoleArn:
+    Description: The ARN of the ECS execution role to be used by CodeBuild.
+    Type: String
+    Default: arn:aws:iam::480535739673:role/WagtailEC2FargateStack-Test-ECSExecutionRole-fibTg0ZNDlx4  # Optional: Set a default value if applicable
+
+
+Resources:
+  # IAM Role for CodePipeline
+  CodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codepipeline.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodePipelinePolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - codecommit:GitPull
+                  - codedeploy:* # Allow all Deployment actions
+                  - iam:PassRole
+                  - codebuild:StartBuild
+                  - codebuild:BatchGetBuilds
+                  - codestar-connections:UseConnection  # Added permission
+                  - s3:GetObject # Added permission
+                  - s3:PutObject # Added permission
+                Resource: '*'
+
+  # IAM Role for CodeBuild
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CodeBuildPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:* # Allow S3 access for artifacts
+                  - logs:* # Allow CloudWatch logs access
+                  - ecr:GetAuthorizationToken
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:InitiateLayerUpload
+                  - ecr:UploadLayerPart
+                  - ecr:CompleteLayerUpload
+                  - ecr:PutImage
+                  - ecr:DescribeRepositories
+                  - ecs:UpdateService
+                  - iam:PassRole # Grant PassRole permission
+                Resource:
+                  - "*"
+                  - !Ref ECSExecutionRoleArn 
+
+  # CodeBuild
+  WagtailCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: WagtailBuildProject
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        Location: !Sub "https://github.com/${GitHubRepositoryOwner}/${GitHubRepositoryName}.git"
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:5.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: IMAGE_TAG
+            Value: !Ref ImageTag
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref "AWS::AccountId"
+          - Name: DEFAULT_AWS_REGION
+            Value: !Ref "AWS::Region"
+          - Name: IMAGE_REPO_URI
+            Value: !Sub "${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${ECRRepositoryName}" # Use AWS::AccountId
+          - Name: ECS_CLUSTER
+            Value: !Ref ECSClusterName
+          - Name: ECS_SERVICE
+            Value: !Ref ECSServiceName
+          - Name: ECS_TASK_DEFINITION
+            Value: !Ref ECSTaskDefinition  
+      Artifacts:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 60
+
+  # CodePipeline
+  WagtailCodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: WagtailDeploymentPipeline
+      RoleArn: !GetAtt CodePipelineRole.Arn
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactBucketName
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: SourceAction
+              ActionTypeId:
+                Category: Source
+                Owner: AWS # Changed from ThirdParty to AWS
+                Provider: CodeStarSourceConnection # Changed from GitHub to CodeStarSourceConnection
+                Version: '1'
+              OutputArtifacts:
+                - Name: SourceOutput
+              Configuration:
+                ConnectionArn: !Ref GitHubConnectionArn
+                FullRepositoryId: !Sub "${GitHubRepositoryOwner}/${GitHubRepositoryName}" # Changed from Owner/Repo to FullRepositoryId
+                BranchName: !Ref GitHubBranch
+
+        - Name: Build
+          Actions:
+            - Name: BuildAction
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: '1'
+              InputArtifacts:
+                - Name: SourceOutput
+              OutputArtifacts:
+                - Name: BuildOutput
+              Configuration:
+                ProjectName: !Ref WagtailCodeBuildProject
