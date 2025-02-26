@@ -3,38 +3,51 @@ from wagtail.admin.panels import FieldPanel, InlinePanel, MultiFieldPanel
 from wagtail.search import index
 
 from wagtail.fields import StreamField
-from ccsintranet.utils.blocks import StoryBlock, InternalLinkBlock
+from ccsintranet.utils.blocks import StoryBlock, InternalLinkBlock, CTASectionBlock
 from ccsintranet.utils.models import BasePage
 
 
 class HomePage(BasePage):
     template = "pages/home_page.html"
 
-    introduction = models.TextField(blank=True)
+    hero_title = models.TextField(blank=True)
+    hero_subtitle = models.TextField(blank=True)
+
+    news_title = models.TextField(blank=True)
+    news_subtitle = models.TextField(blank=True)
+
+    events_title = models.TextField(blank=True)
+    events_subtitle = models.TextField(blank=True)
+
+    guides_title = models.TextField(blank=True)
+    guides_subtitle = models.TextField(blank=True)
+
+
     hero_cta = StreamField(
-        [("link", InternalLinkBlock())],
+        [("link", CTASectionBlock())],
         blank=True,
         min_num=0,
         max_num=1,
     )
-    body = StreamField(StoryBlock())
-    featured_section_title = models.TextField(blank=True)
-
-    search_fields = BasePage.search_fields + [index.SearchField("introduction")]
 
     content_panels = BasePage.content_panels + [
-        FieldPanel("introduction"),
+        FieldPanel("hero_title"),
+        FieldPanel("hero_subtitle"),
         FieldPanel("hero_cta"),
-        FieldPanel("body"),
         MultiFieldPanel(
             [
-                FieldPanel("featured_section_title", heading="Title"),
                 InlinePanel(
                     "page_related_pages",
-                    label="Pages",
-                    max_num=12,
+                    label="Featured pages",
+                    max_num=4,
                 ),
             ],
-            heading="Featured section",
+            heading="Featured pages section",
         ),
+        FieldPanel("news_title"),
+        FieldPanel("news_subtitle"),
+        FieldPanel("events_title"),
+        FieldPanel("events_subtitle"),
+        FieldPanel("guides_title"),
+        FieldPanel("guides_subtitle"),
     ]

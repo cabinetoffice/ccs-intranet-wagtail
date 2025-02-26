@@ -151,7 +151,7 @@ class FeaturedArticleBlock(blocks.StructBlock):
 
 class BaseSectionBlock(blocks.StructBlock):
     heading = blocks.CharBlock(
-        form_classname="title", 
+        form_classname="title",
         icon="title",
         required=True
     )  # Should use H2s only
@@ -182,7 +182,7 @@ class StatisticSectionBlock(BaseSectionBlock):
 
 class CTASectionBlock(blocks.StructBlock):
     heading = blocks.CharBlock(
-        form_classname="title", 
+        form_classname="title",
         icon="title",
         required=True
     )
@@ -228,6 +228,7 @@ class SectionBlocks(blocks.StreamBlock):
 class SectionBlock(blocks.StructBlock):
     heading = blocks.CharBlock(
         form_classname="title",
+        required=False,
         icon="title",
         template="components/streamfield/blocks/heading2_block.html",
     )
