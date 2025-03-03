@@ -34,7 +34,7 @@ module.exports = {
             },
             'grey': {
                 100: '#EFEFEF',
-                200: '#E6E6E6',
+                200: '#D9D9D9',
                 300: '#CCCCCC',
                 400: '#B3B3B3',
                 500: '#999999',
@@ -43,6 +43,7 @@ module.exports = {
                 800: '#3A3A3A',
                 900: '#1E1E1E',
             },
+          ''
             'inherit': 'inherit',
             'current': 'currentColor',
             'transparent': 'transparent',
