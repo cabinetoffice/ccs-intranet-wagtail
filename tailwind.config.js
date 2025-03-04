@@ -43,7 +43,6 @@ module.exports = {
                 800: '#3A3A3A',
                 900: '#1E1E1E',
             },
-          ''
             'inherit': 'inherit',
             'current': 'currentColor',
             'transparent': 'transparent',
