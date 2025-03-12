@@ -1,0 +1,26 @@
+version: 0.2 # Use version 0.2 for better compatibility
+
+phases:
+  pre_build:
+    commands:
+      - echo "Logging in to Amazon ECR..."
+      - aws ecr get-login-password --region $DEFAULT_AWS_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$DEFAULT_AWS_REGION.amazonaws.com
+
+  build:
+    commands:
+      - echo "[Build phase]"
+      - echo "Building the Docker image..."
+      - docker build -t $IMAGE_REPO_URI:$IMAGE_TAG . # Build Docker image with specified tag
+      - echo "Creating imagedefinitions.json..."
+      - printf '[{"name":"%s","imageUri":"%s"}]' "$IMAGE_REPO_URI:$IMAGE_TAG" "$IMAGE_REPO_URI:$IMAGE_TAG" > imagedefinitions.json # Create the image definitions JSON file
+
+  post_build:
+    commands:
+      - echo "Pushing the Docker image to Amazon ECR..."
+      - docker push $IMAGE_REPO_URI:$IMAGE_TAG # Push the Docker image to ECR
+      - echo "Updating ECS service..."
+      - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE --task-definition $ECS_TASK_DEFINITION --force-new-deployment # Update ECS service
+
+artifacts:
+  files:
+    - imagedefinitions.json # Specify this artifact for the next stage

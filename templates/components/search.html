@@ -1,0 +1,54 @@
+<form action="{% url 'search' %}" method="get" role="search" class="
+        {% if variant == 'search-panel' %}
+            site-container 
+            w-full
+            m-auto
+            flex
+            justify-end
+        {% elif variant == 'mobile-menu' %}
+            py-14
+        {% endif %}
+    ">
+    <div class="
+        flex 
+        grow
+        {% if variant != 'mobile-menu' %}
+            flex-col 
+            md:flex-row
+            max-w-[320px]
+        {% endif %}
+        " {% if variant == "search-panel" %} data-search-content {% endif %}>
+        <input class="
+            {% if variant == 'mobile-menu' %}
+            bg-white
+            bg-opacity-20
+            placeholder:text-white
+            text-white
+            {% else %}
+                bg-white 
+                mb-3 md:mb-0
+            {% endif %}
+            border border-grey-200 
+            placeholder:text-base text-base 
+            w-full h-[40px] 
+            rounded-s-[5px] 
+            px-4 pt-1 pb-1
+            " type="search" aria-label="Search the intranet" placeholder="Search the intranet" name="query" {% if variant == "search-panel" %} data-search-input {% endif %} />
+        <button class="
+                text-white 
+                bg-rose-800 
+                px-5 
+                py-2 
+                justify-center 
+                items-center 
+                text-sm 
+                md:text-base 
+                font-codepro 
+                uppercase 
+                inline-flex 
+                rounded-e-[5px]
+            ">
+            {% include "icons/magnifying-glass.html" with class="fill-current w-5 h-5" %}
+        </button>
+    </div>
+</form>
